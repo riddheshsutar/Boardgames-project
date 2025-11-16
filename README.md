@@ -4,7 +4,7 @@
 
 ---
 
-## 🎯 Project Overview
+## 🎯 Project Overview 
 
 This project demonstrates an **end-to-end DevOps implementation** for deploying and managing a Java web application on AWS EC2.
 It automates everything — from infrastructure provisioning to application monitoring — using modern DevOps tools.
