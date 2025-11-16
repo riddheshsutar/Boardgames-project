@@ -1,0 +1,103 @@
+pipeline {
+    agent any
+
+    environment {
+        // 🌍 App Details
+        IMAGE_NAME = 'boardgame'
+        DOCKERHUB_USER = 'sumitshirke369'   // 🔐 Your Docker Hub username
+        EC2_HOST = '13.233.61.40'           // 🌐 ✅ Worker EC2 public IP
+
+        // 🔐 SonarQube
+        SONARQUBE_ENV = 'SonarQube'         // Must match the name in Jenkins System Config
+    }
+
+    tools {
+        maven 'Maven'   // ✅ Only Maven tool here
+    }
+
+    stages {
+        // 1️⃣ Checkout Code from GitHub
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/sumitshirke333/Boardgame-project-.git'
+            }
+        }
+
+        // 2️⃣ Build Maven Project
+        stage('Build Maven Project') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        // 3️⃣ SonarQube Analysis
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                    sh '''
+                        mvn sonar:sonar \
+                          -Dsonar.projectKey=boardgame-app \
+                          -Dsonar.host.url=http://65.2.125.175:9000
+                    '''
+                }
+            }
+        }
+
+        // 4️⃣ Build Docker Image
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                docker build -t $DOCKERHUB_USER/$IMAGE_NAME:latest .
+                docker images
+                '''
+            }
+        }
+
+        // 5️⃣ Trivy Scan
+        stage('Trivy Scan') {
+            steps {
+                sh '''
+                trivy image --severity HIGH,CRITICAL --no-progress $DOCKERHUB_USER/$IMAGE_NAME:latest || true
+                '''
+            }
+        }
+
+        // 6️⃣ Push to Docker Hub
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push $DOCKER_USER/$IMAGE_NAME:latest
+                    '''
+                }
+            }
+        }
+
+        // 7️⃣ Deploy to EC2 via SSH + Docker
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['worker-ssh']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "
+                          docker pull $DOCKERHUB_USER/$IMAGE_NAME:latest &&
+                          docker stop boardgame || true &&
+                          docker rm boardgame || true &&
+                          docker run -d --name boardgame -p 8080:8080 $DOCKERHUB_USER/$IMAGE_NAME:latest
+                        "
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Pipeline completed successfully! 🚀 App is live on EC2'
+        }
+        failure {
+            echo '❌ Pipeline failed. Check logs above for details.'
+        }
+    }
+}
