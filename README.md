@@ -202,14 +202,8 @@ sudo systemctl restart prometheus
 
 ## 👨‍💻 Author
 
-**Sumit Dilip Shirke**
+**Riddhesh Ramesh Sutar**
 DevOps Engineer | Cloud & CI/CD Enthusiast
 
-🔗 [GitHub](https://github.com/sumitshirke333)
-🔗 [LinkedIn](https://linkedin.com/in/sumit-shirke-0335ab337)
-
----
-
-⭐ **If you like this project, give it a star!**
-Made with ❤️ by *Sumit Shirke*
-
+🔗 [GitHub](https://github.com/riddheshsutar/)
+🔗 [LinkedIn](www.linkedin.com/in/sutarriddhesh22)
